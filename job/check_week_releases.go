@@ -116,7 +116,6 @@ func (r *CheckWeekReleasesResult) JobName() string {
 
 // Notify ...
 func (r *CheckWeekReleasesResult) Notify() bool {
-	// NOTE(diego): If we don't have anything to notify we quit early
 	if len(r.WeekReleases) == 0 {
 		return true
 	}

@@ -1,6 +1,6 @@
 @echo off
 
-REM This example checks retrieves week releases for all theaters and sends notifications if necessary.
+REM This example retrieves week releases for all theaters and sends notifications if necessary.
 
 REM Build binary
 
