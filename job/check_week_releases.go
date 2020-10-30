@@ -41,27 +41,24 @@ type Date struct {
 	Year  int
 }
 
-// Today always store the current day.
-var Today = today()
-
 var collecting bool
 
 var theaters = make(map[int]cinemais.Theater, 0)
 var movies = make(map[int]cinemais.Movie, 0)
 
 // Run checks for week release for the given theater
-func (j *CheckWeekReleases) Run(notify bool) Result {
+func (j *CheckWeekReleases) Run(input JobInput) Result {
 	if j.TheaterID == "" {
 		return nil
 	}
 
 	fmt.Printf("Job #%d - Running %s for theater %s...\n", j.ID, JobWeekReleases, j.TheaterID)
 
+	// TODO: Make this goroutine safe.
 	if !collecting {
 		if len(movies) == 0 && len(theaters) == 0 {
 			collecting = true
 
-			fmt.Printf("Job #%d - Collecting aux data...\n", j.ID)
 			go collectAuxData()
 		}
 	}
@@ -70,27 +67,23 @@ func (j *CheckWeekReleases) Run(notify bool) Result {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	sval, _ := strconv.Atoi(j.TheaterID)
 	result := &CheckWeekReleasesResult{
 		Job: j,
 	}
 
-	fmt.Printf("Job #%d - Aux data collected.\n", j.ID)
-
 	// Get current schedule
 	sched, err := cinemais.GetSchedule(j.TheaterID)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil
 	}
 
-	// Check which movies is releasing at the day of execution
+	// Check movies releasing at the day of execution or the input date
 	playing := make(map[int]bool, 0)
 	for _, sess := range sched.Sessions {
 		_, ok := playing[sess.Movie.ID]
 		if !ok {
 			m := movies[sess.Movie.ID]
-			playing[sess.Movie.ID] = IsToday(m.ReleaseDate)
+			playing[sess.Movie.ID] = MatchDate(input.Date, m.ReleaseDate)
 		}
 	}
 
@@ -101,8 +94,9 @@ func (j *CheckWeekReleases) Run(notify bool) Result {
 		}
 	}
 
+	sval, _ := strconv.Atoi(j.TheaterID)
 	result.Theater = theaters[sval]
-	if notify {
+	if input.Notify {
 		result.Notify()
 	}
 
@@ -256,19 +250,9 @@ func collectAuxData() {
 	collecting = false
 }
 
-func today() Date {
-	now := time.Now()
-	return Date{
-		Day:   now.Day(),
-		Month: now.Month(),
-		Year:  now.Year(),
-	}
-}
-
-// IsToday check if a given time equals to current day
-func IsToday(t *time.Time) bool {
-	if t == nil {
+func MatchDate(a time.Time, t *time.Time) bool {
+	if t == nil || a.IsZero() {
 		return false
 	}
-	return t.Day() == Today.Day && t.Month() == Today.Month && t.Year() == Today.Year
+	return t.Day() == a.Day() && t.Month() == a.Month() && t.Year() == a.Year()
 }

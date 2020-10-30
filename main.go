@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/dsbezerra/cinemais-jobs/fcm"
 
@@ -19,6 +21,7 @@ func main() {
 	all := flag.Bool("alltheaters", false, "whether the job should be executed for all theaters or not")
 	notify := flag.Bool("notify", false, "whether the notification should be sent or not")
 	fcmAuthKey := flag.String("fcmauthkey", fcm.FCMAuthKeyPlaceholder, "FCM authentication key used to send notifications")
+	date := flag.String("date", time.Now().Format("2006-01-02"), "which date to check (YYYY-MM-DD)")
 
 	flag.Parse()
 
@@ -35,6 +38,15 @@ func main() {
 		log.Fatal("notify was set, but FCM auth key is missing")
 	}
 	os.Setenv(fcm.FCMAuthKey, *fcmAuthKey)
+
+	d, err := time.Parse("2006-01-02", *date)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("invalid date format. expected YYYY-MM-DD, but got %s", *date))
+	}
+	input := job.JobInput{
+		Date:   d,
+		Notify: *notify,
+	}
 
 	if *all {
 		theaters, err := cinemais.GetTheaters()
@@ -54,7 +66,7 @@ func main() {
 		done := make(chan bool)
 		go result(done)
 
-		createWorkerPool(*workers, *notify)
+		createWorkerPool(*workers, input)
 
 		<-done
 
@@ -68,6 +80,6 @@ func main() {
 			log.Fatal("couldn't find job to run")
 		}
 
-		j.Run(*notify)
+		j.Run(input)
 	}
 }

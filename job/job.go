@@ -1,6 +1,9 @@
 package job
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Result is a interface of a job result
 type Result interface {
@@ -10,7 +13,12 @@ type Result interface {
 }
 
 type Job interface {
-	Run(notify bool) Result
+	Run(input JobInput) Result
+}
+
+type JobInput struct {
+	Date   time.Time
+	Notify bool
 }
 
 // Job represents a job.
@@ -61,7 +69,7 @@ func IsJobValid(j string) bool {
 // PrintJobs print information about all available jobs to run.
 func PrintJobs() {
 	jobInfos := []jobInfo{
-		jobInfo{
+		{
 			name: JobWeekReleases, description: "Check for releases in the current week",
 		},
 	}
